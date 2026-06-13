@@ -27,8 +27,11 @@
           <div class="photo-actions">
             <button type="button" id="open-camera" class="btn btn-secondary">📷 Open camera</button>
             <label class="btn btn-secondary file-btn">
-              🖼️ Choose / upload
-              <input type="file" id="file-input" accept="image/*" capture="environment" hidden />
+              🖼️ Choose from gallery
+              <!-- No "capture" attribute, so this opens the gallery / file picker
+                   (the user can still pick the camera from there). Live capture
+                   is handled separately by the "Open camera" button. -->
+              <input type="file" id="file-input" accept="image/*" hidden />
             </label>
           </div>
 
