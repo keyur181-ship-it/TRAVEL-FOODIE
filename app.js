@@ -45,6 +45,10 @@ const emptyEl = document.getElementById("empty");
 const countEl = document.getElementById("count");
 const searchInput = document.getElementById("search");
 
+const detailModal = document.getElementById("detail-modal");
+const detailBody = document.getElementById("detail-body");
+const detailClose = document.getElementById("detail-close");
+
 // --- In-memory state for the form ---
 let photoDataUrl = null; // the captured/selected photo (data URL) or null
 let coords = null; // { lat, lng } from GPS, or null
@@ -548,6 +552,7 @@ function renderCard(p) {
     mapLink.target = "_blank";
     mapLink.rel = "noopener";
     mapLink.textContent = "📍 Map";
+    mapLink.addEventListener("click", (e) => e.stopPropagation());
     meta.appendChild(mapLink);
   } else {
     meta.appendChild(document.createElement("span"));
@@ -556,16 +561,107 @@ function renderCard(p) {
   const del = document.createElement("button");
   del.className = "del-btn";
   del.textContent = "Delete";
-  del.addEventListener("click", () => {
-    if (!confirm(`Delete "${p.name}"?`)) return;
-    savePlaces(loadPlaces().filter((x) => x.id !== p.id));
-    render();
+  del.addEventListener("click", (e) => {
+    e.stopPropagation(); // don't open the detail popup
+    deletePlace(p);
   });
   meta.appendChild(del);
 
   body.appendChild(meta);
   card.appendChild(body);
+
+  // Tapping the card opens the full detail view.
+  card.classList.add("clickable");
+  card.addEventListener("click", () => openDetail(p));
   return card;
+}
+
+function deletePlace(p) {
+  if (!confirm(`Delete "${p.name}"?`)) return;
+  savePlaces(loadPlaces().filter((x) => x.id !== p.id));
+  render();
+}
+
+// =====================================================================
+// PLACE DETAIL POPUP
+// =====================================================================
+function openDetail(p) {
+  const photo = p.photo
+    ? `<img class="detail-photo" src="${p.photo}" alt="${escapeHtml(p.name)}">`
+    : "";
+  const loc = [p.area, p.location].filter(Boolean).map(escapeHtml).join(", ");
+  const rating = p.rating
+    ? `<div class="detail-rating"><span class="stars">${starString(p.rating)}</span> ${p.rating}/5</div>`
+    : "";
+  const review = p.review
+    ? `<p class="detail-review">“${escapeHtml(p.review)}”</p>`
+    : "";
+  const items =
+    p.items && p.items.length
+      ? `<h4 class="detail-h">Dishes tried</h4><ul class="detail-items">` +
+        p.items
+          .map(
+            (it) =>
+              `<li><strong>${escapeHtml(it.name || "Dish")}</strong>` +
+              ` <span class="stars">${it.rating ? starString(it.rating) : ""}</span>` +
+              `${it.note ? " — " + escapeHtml(it.note) : ""}</li>`
+          )
+          .join("") +
+        `</ul>`
+      : "";
+  const map = p.coords
+    ? `<a class="detail-map" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${p.coords.lat},${p.coords.lng}">📍 Open in Google Maps</a>`
+    : "";
+  const date = p.createdAt
+    ? `<div class="detail-date">Added ${formatDate(p.createdAt)}</div>`
+    : "";
+
+  detailBody.innerHTML =
+    photo +
+    `<h2 class="detail-name">${escapeHtml(p.name)}</h2>` +
+    (loc ? `<div class="detail-loc">${loc}</div>` : "") +
+    rating +
+    review +
+    items +
+    map +
+    date +
+    `<button type="button" class="btn del-detail">Delete this place</button>`;
+
+  detailBody.querySelector(".del-detail").addEventListener("click", () => {
+    deletePlace(p);
+    if (!loadPlaces().some((x) => x.id === p.id)) closeDetail();
+  });
+
+  detailModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden"; // stop background scrolling
+}
+
+function closeDetail() {
+  detailModal.classList.add("hidden");
+  detailBody.innerHTML = "";
+  document.body.style.overflow = "";
+}
+
+detailClose.addEventListener("click", closeDetail);
+detailModal.addEventListener("click", (e) => {
+  if (e.target === detailModal) closeDetail(); // click outside the card
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !detailModal.classList.contains("hidden")) {
+    closeDetail();
+  }
+});
+
+function formatDate(iso) {
+  try {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "";
+  }
 }
 
 function starString(n) {

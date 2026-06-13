@@ -286,4 +286,71 @@ textarea:focus { outline: 2px solid var(--brand); border-color: transparent; }
 .place-items li:first-child { border-top: none; }
 .place-items .stars { margin-left: 6px; }
 
+/* CLICKABLE CARD */
+.place.clickable { cursor: pointer; transition: transform 0.06s ease, box-shadow 0.15s ease; }
+.place.clickable:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(120, 60, 20, 0.14); }
+
+/* DETAIL POPUP */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 20, 10, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  z-index: 50;
+}
+.modal-card {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  max-width: 520px;
+  width: 100%;
+  margin: auto;
+  padding: 18px 18px 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  z-index: 1;
+}
+.detail-photo {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #f3e7da;
+}
+.detail-name { margin: 14px 0 4px; }
+.detail-loc { color: var(--brand-dark); font-weight: 600; }
+.detail-rating { margin: 8px 0; color: var(--muted); }
+.detail-rating .stars, .detail-items .stars { color: #f5a623; letter-spacing: 1px; }
+.detail-review { font-style: italic; margin: 8px 0; }
+.detail-h { margin: 14px 0 6px; }
+.detail-items { list-style: none; padding: 0; margin: 0; }
+.detail-items li { padding: 6px 0; border-top: 1px dashed var(--line); }
+.detail-map {
+  display: inline-block;
+  margin: 12px 0 4px;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.detail-map:hover { text-decoration: underline; }
+.detail-date { color: var(--muted); font-size: 0.85rem; margin: 6px 0 14px; }
+.del-detail { background: var(--brand); width: 100%; }
+.del-detail:hover { background: var(--brand-dark); }
+
 .hidden { display: none !important; }
