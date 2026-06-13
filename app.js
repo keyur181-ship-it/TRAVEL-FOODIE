@@ -49,6 +49,13 @@ const detailModal = document.getElementById("detail-modal");
 const detailBody = document.getElementById("detail-body");
 const detailClose = document.getElementById("detail-close");
 
+const nearbyBtn = document.getElementById("nearby-btn");
+const nearbyArea = document.getElementById("nearby-area");
+const nearbyTypes = document.getElementById("nearby-types");
+const nearbySaved = document.getElementById("nearby-saved");
+const nearbyResults = document.getElementById("nearby-results");
+const nearbyStatus = document.getElementById("nearby-status");
+
 // --- In-memory state for the form ---
 let photoDataUrl = null; // the captured/selected photo (data URL) or null
 let coords = null; // { lat, lng } from GPS, or null
@@ -676,6 +683,212 @@ function escapeHtml(s) {
 }
 
 searchInput.addEventListener("input", render);
+
+// =====================================================================
+// NEAR ME — area detection + nearby food discovery (free, OpenStreetMap)
+// =====================================================================
+let nearbyType = "restaurant";
+let nearbyCoords = null;
+
+const TYPE_LABELS = {
+  restaurant: "Restaurants",
+  cafe: "Cafés",
+  fast_food: "Street food",
+  bakery: "Bakeries",
+};
+const TYPE_ICONS = {
+  restaurant: "🍽️",
+  cafe: "☕",
+  fast_food: "🥡",
+  bakery: "🧁",
+};
+
+nearbyBtn.addEventListener("click", startNearby);
+
+// Type chips switch what we look for.
+nearbyTypes.addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  nearbyType = chip.dataset.type;
+  [...nearbyTypes.children].forEach((c) => c.classList.toggle("on", c === chip));
+  if (nearbyCoords) showDiscovered(nearbyCoords.lat, nearbyCoords.lng);
+});
+
+function startNearby() {
+  if (!navigator.geolocation) {
+    setNearbyStatus("Location isn't supported on this device.");
+    return;
+  }
+  setNearbyStatus("📍 Getting your location…");
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      nearbyCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      loadNearby(nearbyCoords.lat, nearbyCoords.lng);
+    },
+    (err) => {
+      setNearbyStatus(
+        err.code === err.PERMISSION_DENIED
+          ? "Location permission denied — allow it to find food near you."
+          : "Couldn't get your location. Try again."
+      );
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+function loadNearby(lat, lng) {
+  nearbyTypes.classList.remove("hidden");
+  showArea(lat, lng);
+  showSavedNearby(lat, lng);
+  showDiscovered(lat, lng);
+}
+
+// 1) Reverse-geocode to name the current area.
+async function showArea(lat, lng) {
+  nearbyArea.textContent = "📍 Finding your area…";
+  try {
+    const r = await fetchJson(
+      `https://nominatim.openstreetmap.org/reverse?format=json&zoom=16&addressdetails=1&lat=${lat}&lon=${lng}`,
+      10000
+    );
+    const a = r.address || {};
+    const area =
+      a.suburb || a.neighbourhood || a.quarter || a.village || a.town || a.city_district || "";
+    const city = a.city || a.town || a.county || a.state_district || a.state || "";
+    const label = [area, city].filter(Boolean).join(", ");
+    nearbyArea.textContent = label ? "📍 You're near " + label : "📍 You're here.";
+  } catch {
+    nearbyArea.textContent = "📍 You're here (couldn't name the area).";
+  }
+}
+
+// 2) Best of the user's OWN saved + rated places near them.
+function showSavedNearby(lat, lng) {
+  const mine = loadPlaces()
+    .filter((p) => p.coords)
+    .map((p) => ({ p, d: distanceKm(lat, lng, p.coords.lat, p.coords.lng) }))
+    .filter((x) => x.d <= 5)
+    .sort((a, b) => (b.p.rating || 0) - (a.p.rating || 0) || a.d - b.d)
+    .slice(0, 5);
+
+  if (!mine.length) {
+    nearbySaved.innerHTML = "";
+    return;
+  }
+  nearbySaved.innerHTML =
+    '<h3 class="nearby-h">⭐ Your best spots nearby</h3>' +
+    mine
+      .map(
+        (x) =>
+          `<button type="button" class="nearby-row" data-id="${x.p.id}">` +
+          `<span class="nearby-name">${escapeHtml(x.p.name)}</span>` +
+          `<span class="nearby-meta">${x.p.rating ? starString(x.p.rating) + " · " : ""}${fmtDist(x.d)}</span>` +
+          `</button>`
+      )
+      .join("");
+
+  nearbySaved.querySelectorAll(".nearby-row").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const place = loadPlaces().find((p) => p.id === btn.dataset.id);
+      if (place) openDetail(place);
+    });
+  });
+}
+
+// 3) Discover real nearby places from OpenStreetMap (no ratings available).
+async function showDiscovered(lat, lng) {
+  const label = TYPE_LABELS[nearbyType];
+  setNearbyStatus("🔎 Finding " + label.toLowerCase() + " near you…");
+  nearbyResults.innerHTML = "";
+  try {
+    const sel =
+      nearbyType === "bakery"
+        ? 'node["shop"="bakery"]'
+        : `node["amenity"="${nearbyType}"]`;
+    const query = `[out:json][timeout:20];(${sel}(around:1200,${lat},${lng}););out body 30;`;
+    const r = await fetchJson(
+      "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query),
+      20000
+    );
+    const list = (r.elements || [])
+      .map((e) => ({
+        name: e.tags && e.tags.name,
+        cuisine: e.tags && e.tags.cuisine,
+        lat: e.lat,
+        lng: e.lon,
+        d: distanceKm(lat, lng, e.lat, e.lon),
+      }))
+      .filter((x) => x.name && isFinite(x.d))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 12);
+
+    if (!list.length) {
+      nearbyResults.innerHTML =
+        '<p class="hint">No ' + label.toLowerCase() + " found within ~1 km.</p>";
+      setNearbyStatus("");
+      return;
+    }
+    nearbyResults.innerHTML =
+      `<h3 class="nearby-h">${TYPE_ICONS[nearbyType]} ${label} near you</h3>` +
+      list
+        .map(
+          (x) =>
+            `<a class="nearby-row" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${x.lat},${x.lng}">` +
+            `<span class="nearby-name">${escapeHtml(x.name)}</span>` +
+            `<span class="nearby-meta">${fmtDist(x.d)}${x.cuisine ? " · " + escapeHtml(x.cuisine.replace(/[_;]/g, " ")) : ""}</span>` +
+            `</a>`
+        )
+        .join("");
+    setNearbyStatus("From OpenStreetMap. ⭐ ratings come only from your own saved reviews.");
+  } catch (err) {
+    nearbyResults.innerHTML = "";
+    setNearbyStatus("Couldn't load nearby places (slow network or busy server). Try again in a moment.");
+  }
+}
+
+function setNearbyStatus(msg) {
+  nearbyStatus.textContent = msg;
+}
+
+// Distance between two lat/lng points, in km (haversine).
+function distanceKm(lat1, lng1, lat2, lng2) {
+  if (![lat1, lng1, lat2, lng2].every((n) => typeof n === "number")) return Infinity;
+  const R = 6371;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function fmtDist(km) {
+  if (!isFinite(km)) return "";
+  return km < 1 ? Math.round(km * 1000) + " m" : km.toFixed(1) + " km";
+}
+
+async function fetchJson(url, timeoutMs) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs || 12000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// If the user already granted location before, auto-run on load.
+if (navigator.permissions && navigator.permissions.query) {
+  navigator.permissions
+    .query({ name: "geolocation" })
+    .then((status) => {
+      if (status.state === "granted") startNearby();
+    })
+    .catch(() => {});
+}
 
 // First paint
 render();
