@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Travel Foodie India 🍴</title>
+  <meta name="description" content="Tag and remember great food spots anywhere in India — with live photos and location." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>🍴 Travel Foodie <span>India</span></h1>
+    <p class="tagline">Tag any food spot — a roadside stall, a restaurant, anywhere — with a live photo and location.</p>
+  </header>
+
+  <main class="container">
+    <!-- ADD A PLACE -->
+    <section class="card form-card">
+      <h2>Add a place</h2>
+      <form id="place-form">
+        <label>
+          Name of place <span class="req">*</span>
+          <input type="text" id="name" placeholder="e.g. Sharma Chaat Bhandar" required />
+        </label>
+
+        <label>
+          Area <span class="req">*</span>
+          <input type="text" id="area" placeholder="e.g. Connaught Place" required />
+        </label>
+
+        <label>
+          Location / City
+          <input type="text" id="location" placeholder="e.g. New Delhi" />
+        </label>
+
+        <!-- LIVE GPS -->
+        <div class="row">
+          <button type="button" id="gps-btn" class="btn btn-secondary">📍 Use my live location</button>
+          <span id="gps-status" class="hint"></span>
+        </div>
+
+        <!-- PHOTO CAPTURE -->
+        <div class="photo-block">
+          <span class="label-text">Photo</span>
+
+          <div class="photo-actions">
+            <button type="button" id="open-camera" class="btn btn-secondary">📷 Open camera</button>
+            <label class="btn btn-secondary file-btn">
+              🖼️ Choose / upload
+              <input type="file" id="file-input" accept="image/*" capture="environment" hidden />
+            </label>
+          </div>
+
+          <!-- live camera preview (hidden until camera is opened) -->
+          <div id="camera-wrap" class="camera-wrap hidden">
+            <video id="video" autoplay playsinline muted></video>
+            <div class="photo-actions">
+              <button type="button" id="capture-btn" class="btn">✅ Capture</button>
+              <button type="button" id="cancel-camera" class="btn btn-ghost">Cancel</button>
+            </div>
+          </div>
+
+          <!-- captured/selected photo preview -->
+          <div id="preview-wrap" class="preview-wrap hidden">
+            <img id="preview" alt="Selected photo preview" />
+            <button type="button" id="remove-photo" class="btn btn-ghost">Remove photo</button>
+          </div>
+
+          <canvas id="canvas" class="hidden"></canvas>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save place</button>
+      </form>
+    </section>
+
+    <!-- SAVED PLACES -->
+    <section class="places-section">
+      <div class="places-head">
+        <h2>Your places <span id="count" class="count">0</span></h2>
+        <input type="search" id="search" placeholder="Search name or area…" />
+      </div>
+      <div id="empty" class="empty">No places yet. Add your first food spot above! 🍲</div>
+      <div id="places" class="places-grid"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>Saved on this device only · Built with 🧡 for food lovers on the road</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
