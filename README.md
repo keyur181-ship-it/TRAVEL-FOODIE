@@ -8,6 +8,8 @@ device, so there's no account and no server to run.
 ## ✨ Features
 
 - 📷 **Live camera capture** right in the browser (with photo-upload fallback)
+- 🔤 **Auto-fill the name from the signboard** — snap the board and on-device OCR
+  (Tesseract.js) reads the name so you barely type anything
 - 📍 **One-tap GPS location** (opens in Google Maps)
 - 🏷️ Tag each place with **name, area, and location**
 - 💾 Saved on your device (localStorage) — works offline after first load

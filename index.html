@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Travel Foodie India 🍴</title>
-  <meta name="description" content="Tag and remember great food spots anywhere in India — with live photos and location." />
+  <meta name="description" content="Tag and remember great food spots anywhere in India — snap the signboard and we auto-fill the name." />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="app-header">
     <h1>🍴 Travel Foodie <span>India</span></h1>
-    <p class="tagline">Tag any food spot — a roadside stall, a restaurant, anywhere — with a live photo and location.</p>
+    <p class="tagline">Snap the signboard — we read the name for you. Less typing, more eating.</p>
   </header>
 
   <main class="container">
@@ -18,30 +18,11 @@
     <section class="card form-card">
       <h2>Add a place</h2>
       <form id="place-form">
-        <label>
-          Name of place <span class="req">*</span>
-          <input type="text" id="name" placeholder="e.g. Sharma Chaat Bhandar" required />
-        </label>
 
-        <label>
-          Area <span class="req">*</span>
-          <input type="text" id="area" placeholder="e.g. Connaught Place" required />
-        </label>
-
-        <label>
-          Location / City
-          <input type="text" id="location" placeholder="e.g. New Delhi" />
-        </label>
-
-        <!-- LIVE GPS -->
-        <div class="row">
-          <button type="button" id="gps-btn" class="btn btn-secondary">📍 Use my live location</button>
-          <span id="gps-status" class="hint"></span>
-        </div>
-
-        <!-- PHOTO CAPTURE -->
+        <!-- STEP 1: PHOTO (first!) -->
         <div class="photo-block">
-          <span class="label-text">Photo</span>
+          <span class="label-text">1. Photo of the place / signboard</span>
+          <p class="hint">Take a clear photo of the name board — we'll try to fill the name automatically. 📸</p>
 
           <div class="photo-actions">
             <button type="button" id="open-camera" class="btn btn-secondary">📷 Open camera</button>
@@ -63,10 +44,41 @@
           <!-- captured/selected photo preview -->
           <div id="preview-wrap" class="preview-wrap hidden">
             <img id="preview" alt="Selected photo preview" />
-            <button type="button" id="remove-photo" class="btn btn-ghost">Remove photo</button>
+            <div class="photo-actions">
+              <button type="button" id="ocr-btn" class="btn btn-secondary">✨ Read name from photo</button>
+              <button type="button" id="remove-photo" class="btn btn-ghost">Remove photo</button>
+            </div>
           </div>
 
+          <p id="ocr-status" class="ocr-status hidden"></p>
+          <details id="ocr-text" class="ocr-text hidden">
+            <summary>Show all text we detected</summary>
+            <pre id="ocr-text-content"></pre>
+          </details>
+
           <canvas id="canvas" class="hidden"></canvas>
+        </div>
+
+        <!-- STEP 2: DETAILS (auto-filled where possible) -->
+        <label>
+          2. Name of place <span class="req">*</span>
+          <input type="text" id="name" placeholder="e.g. Sharma Chaat Bhandar" required />
+        </label>
+
+        <label>
+          Area <span class="req">*</span>
+          <input type="text" id="area" placeholder="e.g. Connaught Place" required />
+        </label>
+
+        <label>
+          Location / City
+          <input type="text" id="location" placeholder="e.g. New Delhi" />
+        </label>
+
+        <!-- LIVE GPS -->
+        <div class="row">
+          <button type="button" id="gps-btn" class="btn btn-secondary">📍 Use my live location</button>
+          <span id="gps-status" class="hint"></span>
         </div>
 
         <button type="submit" class="btn btn-primary">Save place</button>
@@ -88,6 +100,8 @@
     <p>Saved on this device only · Built with 🧡 for food lovers on the road</p>
   </footer>
 
+  <!-- OCR engine (reads text from photos), loaded from a CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
