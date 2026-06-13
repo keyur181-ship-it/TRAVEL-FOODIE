@@ -389,51 +389,211 @@ removePhotoBtn.addEventListener("click", () => {
 });
 
 // =====================================================================
-// SAVE + STORAGE
+// CLOUD DATA + AUTH (Supabase)
 // =====================================================================
+const cfg = window.TF_CONFIG || {};
+const sb =
+  window.supabase && cfg.SUPABASE_URL
+    ? window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY)
+    : null;
+
+let placesCache = []; // all places loaded from the cloud
+let currentUser = null; // the signed-in user, or null
+
+// The rest of the app reads places synchronously via loadPlaces();
+// it now returns the in-memory cloud cache.
 function loadPlaces() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
+  return placesCache;
+}
+
+function isMine(p) {
+  return !!currentUser && p.added_by === currentUser.id;
+}
+
+async function refreshPlaces() {
+  if (!sb) return;
+  const { data, error } = await sb
+    .from("places")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Loading places failed:", error.message);
+    return;
   }
+  // Map DB rows into the shape the rest of the app already expects.
+  placesCache = (data || []).map((r) => ({
+    id: r.id,
+    added_by: r.added_by,
+    name: r.name,
+    area: r.area || "",
+    location: r.location || "",
+    coords: r.lat != null && r.lng != null ? { lat: r.lat, lng: r.lng } : null,
+    photo: r.photo || null,
+    rating: r.rating || 0,
+    review: r.review || "",
+    items: Array.isArray(r.items) ? r.items : [],
+    createdAt: r.created_at,
+  }));
+  render();
 }
 
-function savePlaces(places) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(places));
-}
-
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!sb) {
+    alert("Cloud is not configured.");
+    return;
+  }
+  if (!currentUser) {
+    openAuth(); // must be signed in to add a place
+    return;
+  }
 
-  const place = {
-    id: Date.now().toString(),
+  const row = {
+    added_by: currentUser.id,
     name: nameInput.value.trim(),
     area: areaInput.value.trim(),
     location: locationInput.value.trim(),
-    coords: coords,
+    lat: coords ? coords.lat : null,
+    lng: coords ? coords.lng : null,
     photo: photoDataUrl,
     rating: getStars(starInput),
     review: reviewInput.value.trim(),
     items: collectItems(),
-    createdAt: new Date().toISOString(),
   };
 
-  const places = loadPlaces();
-  places.unshift(place); // newest first
+  const saveBtn = form.querySelector('button[type="submit"]');
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Saving…";
+  const { error } = await sb.from("places").insert(row);
+  saveBtn.disabled = false;
+  saveBtn.textContent = "Save place";
 
-  try {
-    savePlaces(places);
-  } catch (err) {
-    alert(
-      "Couldn't save — your device storage may be full. Try removing some older places."
-    );
+  if (error) {
+    alert("Couldn't save: " + error.message);
     return;
   }
-
   resetForm();
-  render();
+  await refreshPlaces();
 });
+
+// ---------------------------------------------------------------------
+// AUTH: email login with a 6-digit code (OTP) + verification
+// ---------------------------------------------------------------------
+const signinBtn = document.getElementById("signin-btn");
+const signoutBtn = document.getElementById("signout-btn");
+const userEmailEl = document.getElementById("user-email");
+const authModal = document.getElementById("auth-modal");
+const authClose = document.getElementById("auth-close");
+const authStepEmail = document.getElementById("auth-step-email");
+const authStepCode = document.getElementById("auth-step-code");
+const authEmailInput = document.getElementById("auth-email");
+const authSendBtn = document.getElementById("auth-send");
+const authCodeInput = document.getElementById("auth-code");
+const authVerifyBtn = document.getElementById("auth-verify");
+const authBackBtn = document.getElementById("auth-back");
+const authStatus = document.getElementById("auth-status");
+const authEmailLabel = document.getElementById("auth-email-label");
+
+let pendingEmail = "";
+
+function openAuth() {
+  authModal.classList.remove("hidden");
+  showAuthStep("email");
+}
+function closeAuth() {
+  authModal.classList.add("hidden");
+  authStatus.textContent = "";
+}
+function showAuthStep(step) {
+  authStepEmail.classList.toggle("hidden", step !== "email");
+  authStepCode.classList.toggle("hidden", step !== "code");
+}
+
+signinBtn.addEventListener("click", openAuth);
+authClose.addEventListener("click", closeAuth);
+authModal.addEventListener("click", (e) => {
+  if (e.target === authModal) closeAuth();
+});
+authBackBtn.addEventListener("click", () => showAuthStep("email"));
+
+authSendBtn.addEventListener("click", async () => {
+  const email = authEmailInput.value.trim();
+  if (!email) {
+    authStatus.textContent = "Please enter your email.";
+    return;
+  }
+  authSendBtn.disabled = true;
+  authStatus.textContent = "Sending code…";
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+  authSendBtn.disabled = false;
+  if (error) {
+    authStatus.textContent = "Error: " + error.message;
+    return;
+  }
+  pendingEmail = email;
+  authEmailLabel.textContent = email;
+  authStatus.textContent = "";
+  showAuthStep("code");
+});
+
+authVerifyBtn.addEventListener("click", async () => {
+  const token = authCodeInput.value.trim();
+  if (!token) {
+    authStatus.textContent = "Enter the 6-digit code.";
+    return;
+  }
+  authVerifyBtn.disabled = true;
+  authStatus.textContent = "Verifying…";
+  const { error } = await sb.auth.verifyOtp({
+    email: pendingEmail,
+    token,
+    type: "email",
+  });
+  authVerifyBtn.disabled = false;
+  if (error) {
+    authStatus.textContent = "Wrong or expired code: " + error.message;
+    return;
+  }
+  authStatus.textContent = "";
+  authCodeInput.value = "";
+  closeAuth();
+  // onAuthStateChange (below) updates the UI and reloads places.
+});
+
+signoutBtn.addEventListener("click", async () => {
+  await sb.auth.signOut();
+});
+
+function updateAuthUI() {
+  const signedIn = !!currentUser;
+  signinBtn.classList.toggle("hidden", signedIn);
+  signoutBtn.classList.toggle("hidden", !signedIn);
+  userEmailEl.classList.toggle("hidden", !signedIn);
+  userEmailEl.textContent = signedIn ? currentUser.email || "" : "";
+}
+
+async function initAuth() {
+  if (!sb) {
+    console.error("Supabase not configured — check config.js.");
+    return;
+  }
+  const {
+    data: { session },
+  } = await sb.auth.getSession();
+  currentUser = session ? session.user : null;
+  updateAuthUI();
+  await refreshPlaces();
+
+  sb.auth.onAuthStateChange((_event, session) => {
+    currentUser = session ? session.user : null;
+    updateAuthUI();
+    refreshPlaces();
+  });
+}
+initAuth();
 
 function resetForm() {
   form.reset();
@@ -565,14 +725,17 @@ function renderCard(p) {
     meta.appendChild(document.createElement("span"));
   }
 
-  const del = document.createElement("button");
-  del.className = "del-btn";
-  del.textContent = "Delete";
-  del.addEventListener("click", (e) => {
-    e.stopPropagation(); // don't open the detail popup
-    deletePlace(p);
-  });
-  meta.appendChild(del);
+  // Delete only shows for the person who added this place.
+  if (isMine(p)) {
+    const del = document.createElement("button");
+    del.className = "del-btn";
+    del.textContent = "Delete";
+    del.addEventListener("click", (e) => {
+      e.stopPropagation(); // don't open the detail popup
+      deletePlace(p);
+    });
+    meta.appendChild(del);
+  }
 
   body.appendChild(meta);
   card.appendChild(body);
@@ -583,10 +746,16 @@ function renderCard(p) {
   return card;
 }
 
-function deletePlace(p) {
+async function deletePlace(p) {
   if (!confirm(`Delete "${p.name}"?`)) return;
-  savePlaces(loadPlaces().filter((x) => x.id !== p.id));
-  render();
+  // The database also enforces this (only the author can delete), so even
+  // if the button somehow showed, the server would reject others.
+  const { error } = await sb.from("places").delete().eq("id", p.id);
+  if (error) {
+    alert("Couldn't delete: " + error.message);
+    return;
+  }
+  await refreshPlaces();
 }
 
 // =====================================================================
@@ -632,12 +801,17 @@ function openDetail(p) {
     items +
     map +
     date +
-    `<button type="button" class="btn del-detail">Delete this place</button>`;
+    (isMine(p)
+      ? `<button type="button" class="btn del-detail">Delete this place</button>`
+      : `<p class="detail-note">Added by another foodie — only they can edit or delete it.</p>`);
 
-  detailBody.querySelector(".del-detail").addEventListener("click", () => {
-    deletePlace(p);
-    if (!loadPlaces().some((x) => x.id === p.id)) closeDetail();
-  });
+  const delDetail = detailBody.querySelector(".del-detail");
+  if (delDetail) {
+    delDetail.addEventListener("click", async () => {
+      await deletePlace(p);
+      if (!loadPlaces().some((x) => x.id === p.id)) closeDetail();
+    });
+  }
 
   detailModal.classList.remove("hidden");
   document.body.style.overflow = "hidden"; // stop background scrolling
