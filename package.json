@@ -1,0 +1,10 @@
+{
+  "name": "travel-foodie",
+  "version": "0.1.0",
+  "description": "Match travelers to local dishes worth seeking out.",
+  "main": "src/recommend.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}
