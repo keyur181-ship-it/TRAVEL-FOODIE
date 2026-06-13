@@ -108,6 +108,25 @@
       </form>
     </section>
 
+    <!-- NEAR ME -->
+    <section class="card nearby-card">
+      <h2>📍 Near me</h2>
+      <div id="nearby-area" class="nearby-area">Find the food around you right now.</div>
+      <button type="button" id="nearby-btn" class="btn">🔎 Find food near me</button>
+
+      <div id="nearby-types" class="nearby-types hidden">
+        <button type="button" class="chip on" data-type="restaurant">🍽️ Restaurants</button>
+        <button type="button" class="chip" data-type="cafe">☕ Cafés</button>
+        <button type="button" class="chip" data-type="fast_food">🥡 Street food</button>
+        <button type="button" class="chip" data-type="bakery">🧁 Bakeries</button>
+      </div>
+
+      <div id="nearby-saved"></div>
+      <div id="nearby-results"></div>
+      <p id="nearby-status" class="hint"></p>
+      <p class="nearby-privacy">🔒 Finding nearby places sends your location to OpenStreetMap's free service.</p>
+    </section>
+
     <!-- SAVED PLACES -->
     <section class="places-section">
       <div class="places-head">

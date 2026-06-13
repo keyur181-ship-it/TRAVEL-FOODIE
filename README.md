@@ -11,6 +11,8 @@ device, so there's no account and no server to run.
 - 🔤 **Auto-fill the name from the signboard** — snap the board and on-device OCR
   (Tesseract.js) reads the name so you barely type anything
 - 📍 **One-tap GPS location** (opens in Google Maps)
+- 🧭 **Near me** — auto-detects your area and finds nearby restaurants/cafés/street-food/
+  bakeries from OpenStreetMap (free, no key), plus your best-rated saved spots nearby
 - 🏷️ Tag each place with **name, area, and location**
 - 💾 Saved on your device (localStorage) — works offline after first load
 - 🔎 Search your saved places by name or area

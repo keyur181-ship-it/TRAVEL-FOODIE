@@ -353,4 +353,42 @@ textarea:focus { outline: 2px solid var(--brand); border-color: transparent; }
 .del-detail { background: var(--brand); width: 100%; }
 .del-detail:hover { background: var(--brand-dark); }
 
+/* NEAR ME */
+.nearby-card { margin-top: 20px; }
+.nearby-area { font-weight: 600; margin-bottom: 10px; }
+.nearby-types { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; }
+.chip {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink);
+}
+.chip.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+.nearby-h { font-size: 1rem; margin: 16px 0 8px; }
+.nearby-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: #fff7f0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--ink);
+  font: inherit;
+}
+.nearby-row:hover { background: #fdeee4; }
+.nearby-name { font-weight: 600; }
+.nearby-meta { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+.nearby-privacy { color: var(--muted); font-size: 0.78rem; margin-top: 12px; }
+
 .hidden { display: none !important; }
