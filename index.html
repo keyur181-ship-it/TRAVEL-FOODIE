@@ -9,6 +9,11 @@
 </head>
 <body>
   <header class="app-header">
+    <div id="auth-bar" class="auth-bar">
+      <span id="user-email" class="user-email hidden"></span>
+      <button type="button" id="signin-btn" class="btn btn-small">Sign in</button>
+      <button type="button" id="signout-btn" class="btn btn-small btn-ghost hidden">Sign out</button>
+    </div>
     <h1>🍴 Travel Foodie <span>India</span></h1>
     <p class="tagline">Snap the signboard — we read the name for you. Less typing, more eating.</p>
   </header>
@@ -150,7 +155,34 @@
     </div>
   </div>
 
-  <!-- OCR engine (reads text from photos), loaded from a CDN -->
+  <!-- SIGN IN POPUP -->
+  <div id="auth-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Sign in">
+    <div class="modal-card">
+      <button type="button" id="auth-close" class="modal-close" aria-label="Close">✕</button>
+      <h2>Sign in</h2>
+
+      <div id="auth-step-email">
+        <p>Enter your email and we'll send you a 6-digit code.</p>
+        <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" />
+        <button type="button" id="auth-send" class="btn btn-primary">Send code</button>
+      </div>
+
+      <div id="auth-step-code" class="hidden">
+        <p>Enter the 6-digit code we emailed to <strong id="auth-email-label"></strong>
+          (or click the link in that email).</p>
+        <input type="text" id="auth-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" />
+        <button type="button" id="auth-verify" class="btn btn-primary">Verify &amp; sign in</button>
+        <button type="button" id="auth-back" class="btn btn-ghost">Use a different email</button>
+      </div>
+
+      <p id="auth-status" class="hint"></p>
+      <p class="hint">🔵 Google &amp; 📱 phone login are coming next.</p>
+    </div>
+  </div>
+
+  <!-- Cloud + OCR libraries -->
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="app.js"></script>
 </body>

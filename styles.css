@@ -391,4 +391,28 @@ textarea:focus { outline: 2px solid var(--brand); border-color: transparent; }
 .nearby-meta { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
 .nearby-privacy { color: var(--muted); font-size: 0.78rem; margin-top: 12px; }
 
+/* AUTH BAR + SIGN IN */
+.auth-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 8px;
+  min-height: 32px;
+}
+.user-email { font-size: 0.85rem; opacity: 0.95; }
+.btn-small { padding: 6px 12px; font-size: 0.85rem; }
+.auth-bar .btn-small { background: rgba(255, 255, 255, 0.95); color: var(--brand-dark); }
+.auth-bar .btn-ghost { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, 0.6); }
+
+#auth-modal .modal-card { max-width: 400px; }
+#auth-modal input { margin-bottom: 12px; }
+#auth-step-code input { letter-spacing: 4px; font-size: 1.2rem; text-align: center; }
+.detail-note {
+  margin: 8px 0 4px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 .hidden { display: none !important; }
