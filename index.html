@@ -84,6 +84,26 @@
           <span id="gps-status" class="hint"></span>
         </div>
 
+        <!-- OVERALL STAR RATING -->
+        <div class="rate-block">
+          <span class="label-text">Your rating</span>
+          <div id="star-input" class="stars-input" aria-label="Rate this place"></div>
+        </div>
+
+        <!-- OVERALL REVIEW -->
+        <label>
+          Your review (optional)
+          <textarea id="review" rows="3" placeholder="How was it overall? Taste, service, price, vibe…"></textarea>
+        </label>
+
+        <!-- FOOD ITEMS -->
+        <div class="items-block">
+          <span class="label-text">Food items you tried (optional)</span>
+          <p class="hint">Rate individual dishes so others know what to order. 🍽️</p>
+          <div id="items-list"></div>
+          <button type="button" id="add-item" class="btn btn-secondary">➕ Add a food item</button>
+        </div>
+
         <button type="submit" class="btn btn-primary">Save place</button>
       </form>
     </section>
@@ -92,7 +112,7 @@
     <section class="places-section">
       <div class="places-head">
         <h2>Your places <span id="count" class="count">0</span></h2>
-        <input type="search" id="search" placeholder="Search name or area…" />
+        <input type="search" id="search" placeholder="Search restaurant, area, or dish…" />
       </div>
       <div id="empty" class="empty">No places yet. Add your first food spot above! 🍲</div>
       <div id="places" class="places-grid"></div>
