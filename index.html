@@ -123,6 +123,14 @@
     <p>Saved on this device only · Built with 🧡 for food lovers on the road</p>
   </footer>
 
+  <!-- PLACE DETAIL POPUP -->
+  <div id="detail-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Place details">
+    <div class="modal-card">
+      <button type="button" id="detail-close" class="modal-close" aria-label="Close">✕</button>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+
   <!-- OCR engine (reads text from photos), loaded from a CDN -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="app.js"></script>
