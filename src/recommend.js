@@ -7,6 +7,8 @@ const DISHES_BY_CITY = {
   bangkok: ["Pad Thai", "Som Tam", "Mango Sticky Rice"],
   rome: ["Cacio e Pepe", "Supplì", "Gelato"],
   istanbul: ["Simit", "Balık Ekmek", "Baklava"],
+  paris: ["Croissant", "Steak Frites", "Crêpes"],
+  "mexico city": ["Tacos al Pastor", "Tamales", "Churros"],
 };
 
 /**

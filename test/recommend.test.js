@@ -20,6 +20,14 @@ test("is case-insensitive and trims whitespace", () => {
   ]);
 });
 
+test("returns dishes for a multi-word city name", () => {
+  assert.deepStrictEqual(recommendDishes("Mexico City"), [
+    "Tacos al Pastor",
+    "Tamales",
+    "Churros",
+  ]);
+});
+
 test("returns an empty array for an unknown city", () => {
   assert.deepStrictEqual(recommendDishes("Atlantis"), []);
 });
