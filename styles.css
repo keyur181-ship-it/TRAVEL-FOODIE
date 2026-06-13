@@ -111,6 +111,28 @@ input:focus { outline: 2px solid var(--brand); border-color: transparent; }
 #preview { object-fit: cover; }
 .preview-wrap .btn-ghost { margin-top: 8px; }
 
+.ocr-status {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  background: #fff3ec;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.ocr-text { margin-top: 8px; font-size: 0.85rem; color: var(--muted); }
+.ocr-text summary { cursor: pointer; }
+.ocr-text pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #faf3ec;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 6px;
+  font-family: inherit;
+}
+
 /* PLACES */
 .places-section { margin-top: 26px; }
 .places-head {

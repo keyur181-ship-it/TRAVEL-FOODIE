@@ -30,6 +30,10 @@ const canvas = document.getElementById("canvas");
 const previewWrap = document.getElementById("preview-wrap");
 const preview = document.getElementById("preview");
 const removePhotoBtn = document.getElementById("remove-photo");
+const ocrBtn = document.getElementById("ocr-btn");
+const ocrStatus = document.getElementById("ocr-status");
+const ocrText = document.getElementById("ocr-text");
+const ocrTextContent = document.getElementById("ocr-text-content");
 
 const placesEl = document.getElementById("places");
 const emptyEl = document.getElementById("empty");
@@ -147,6 +151,129 @@ function shrinkImage(dataUrl, maxW, done) {
 function showPreview(url) {
   preview.src = url;
   previewWrap.classList.remove("hidden");
+  // Automatically try to read the signboard and fill the name.
+  runOcr(url, /* auto */ true);
+}
+
+// =====================================================================
+// READ TEXT FROM THE PHOTO (OCR) AND AUTO-FILL THE NAME
+// =====================================================================
+let ocrRunning = false;
+
+ocrBtn.addEventListener("click", () => {
+  if (photoDataUrl) runOcr(photoDataUrl, /* auto */ false);
+});
+
+async function runOcr(imageUrl, auto) {
+  if (ocrRunning) return;
+  if (typeof Tesseract === "undefined") {
+    setOcrStatus("⚠️ Text reader not loaded — check your internet and try “Read name from photo”.");
+    return;
+  }
+  ocrRunning = true;
+  ocrBtn.disabled = true;
+  setOcrStatus("🔎 Reading the signboard… (first time can take a few seconds)");
+
+  try {
+    const { data } = await Tesseract.recognize(imageUrl, "eng", {
+      logger: (m) => {
+        if (m.status === "recognizing text") {
+          setOcrStatus("🔎 Reading the signboard… " + Math.round(m.progress * 100) + "%");
+        }
+      },
+    });
+
+    const fullText = (data.text || "").trim();
+    const guess = pickPlaceName(data);
+
+    if (fullText) {
+      ocrTextContent.textContent = fullText;
+      ocrText.classList.remove("hidden");
+    } else {
+      ocrText.classList.add("hidden");
+    }
+
+    if (guess) {
+      // Don't overwrite something the user already typed unless they
+      // explicitly pressed the button.
+      if (!nameInput.value.trim() || !auto) {
+        nameInput.value = guess;
+        setOcrStatus('✅ Filled the name from the photo: “' + guess + '”. Edit it if it\'s wrong.');
+      } else {
+        setOcrStatus('💡 Detected “' + guess + '”. Your typed name was kept.');
+      }
+    } else {
+      setOcrStatus("🤔 Couldn't read a clear name. Please type it in.");
+    }
+  } catch (err) {
+    setOcrStatus("⚠️ Couldn't read the photo (" + (err.name || "error") + "). Please type the name.");
+  } finally {
+    ocrRunning = false;
+    ocrBtn.disabled = false;
+  }
+}
+
+function setOcrStatus(msg) {
+  ocrStatus.textContent = msg;
+  ocrStatus.classList.remove("hidden");
+}
+
+// Pick the most likely place name from the OCR result.
+// When we have per-line position + size (bbox), the name is usually the
+// biggest text near the top — and signboard names often wrap onto a couple
+// of lines, so we join the tallest line with its similar-sized neighbours.
+// Without bbox we fall back to scoring lines as plain text.
+function pickPlaceName(data) {
+  const hasLines = Array.isArray(data.lines) && data.lines.length;
+
+  let lines = (hasLines
+    ? data.lines.map((l, i) => ({
+        text: cleanLine(l.text),
+        conf: typeof l.confidence === "number" ? l.confidence : 50,
+        height: l.bbox ? l.bbox.y1 - l.bbox.y0 : 0,
+        idx: i,
+      }))
+    : (data.text || "")
+        .split("\n")
+        .map((t, i) => ({ text: cleanLine(t), conf: 55, height: 0, idx: i }))
+  ).filter((c) => c.text.length >= 2 && c.conf >= 35 && digitRatio(c.text) < 0.5);
+
+  if (!lines.length) return "";
+
+  if (hasLines) {
+    // The tallest line is almost always part of the name.
+    const tallest = lines.reduce((a, b) => (b.height > a.height ? b : a));
+    const H = tallest.height || 1;
+    // Join it with nearby lines (in reading order) of similar size.
+    const group = lines
+      .filter((c) => Math.abs(c.idx - tallest.idx) <= 2 && c.height >= 0.65 * H)
+      .sort((a, b) => a.idx - b.idx);
+    const name = group.map((g) => g.text).join(" ").replace(/\s+/g, " ").trim();
+    return name || tallest.text;
+  }
+
+  // Plain-text fallback: score each line and take the best.
+  lines.forEach((c, i) => {
+    const letters = (c.text.match(/[A-Za-z]/g) || []).length;
+    const len = c.text.length;
+    const upperRatio =
+      letters > 0 ? (c.text.match(/[A-Z]/g) || []).length / letters : 0;
+    c.score = c.conf * 0.4 + upperRatio * 18 + Math.min(len, 22) - i * 3;
+  });
+  lines.sort((a, b) => b.score - a.score);
+  return lines[0].text;
+}
+
+function digitRatio(s) {
+  if (!s.length) return 0;
+  return (s.match(/[0-9]/g) || []).length / s.length;
+}
+
+function cleanLine(s) {
+  return (s || "")
+    .replace(/[^\p{L}\p{N}&'’.\- ]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 removePhotoBtn.addEventListener("click", () => {
@@ -154,6 +281,8 @@ removePhotoBtn.addEventListener("click", () => {
   preview.src = "";
   previewWrap.classList.add("hidden");
   fileInput.value = "";
+  ocrStatus.classList.add("hidden");
+  ocrText.classList.add("hidden");
 });
 
 // =====================================================================
@@ -206,6 +335,8 @@ function resetForm() {
   coords = null;
   previewWrap.classList.add("hidden");
   gpsStatus.textContent = "";
+  ocrStatus.classList.add("hidden");
+  ocrText.classList.add("hidden");
   stopCamera();
 }
 
