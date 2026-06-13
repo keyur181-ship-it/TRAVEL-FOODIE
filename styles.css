@@ -208,4 +208,82 @@ input:focus { outline: 2px solid var(--brand); border-color: transparent; }
 
 .app-footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 20px; }
 
+/* TEXTAREA */
+textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  resize: vertical;
+}
+textarea:focus { outline: 2px solid var(--brand); border-color: transparent; }
+
+/* STAR RATING INPUT */
+.rate-block, .items-block { margin-bottom: 14px; }
+.stars-input { display: inline-flex; gap: 4px; margin-top: 6px; }
+.star {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #d9c7b8; /* empty star */
+  transition: transform 0.05s ease;
+}
+.star:hover { transform: scale(1.1); }
+.star.on { color: #f5a623; } /* filled star */
+
+/* FOOD ITEM ROWS */
+.item-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 10px;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #fff7f0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.item-row .item-name { grid-column: 1; margin-top: 0; }
+.item-row .item-stars { grid-column: 1 / -1; }
+.item-row .item-stars .star { font-size: 1.4rem; }
+.item-row .item-note { grid-column: 1 / -1; margin-top: 0; }
+.remove-item {
+  grid-row: 1;
+  grid-column: 2;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.remove-item:hover { color: var(--brand); background: #fcece6; }
+
+/* RATINGS / REVIEWS ON CARDS */
+.place-rating { margin: 4px 0 2px; font-size: 0.9rem; color: var(--muted); }
+.place-rating .stars, .place-items .stars { color: #f5a623; letter-spacing: 1px; }
+.place-review {
+  margin: 4px 0;
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--ink);
+}
+.place-items {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+}
+.place-items li { padding: 2px 0; border-top: 1px dashed var(--line); }
+.place-items li:first-child { border-top: none; }
+.place-items .stars { margin-left: 6px; }
+
 .hidden { display: none !important; }

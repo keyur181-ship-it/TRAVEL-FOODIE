@@ -35,6 +35,11 @@ const ocrStatus = document.getElementById("ocr-status");
 const ocrText = document.getElementById("ocr-text");
 const ocrTextContent = document.getElementById("ocr-text-content");
 
+const starInput = document.getElementById("star-input");
+const reviewInput = document.getElementById("review");
+const itemsList = document.getElementById("items-list");
+const addItemBtn = document.getElementById("add-item");
+
 const placesEl = document.getElementById("places");
 const emptyEl = document.getElementById("empty");
 const countEl = document.getElementById("count");
@@ -44,6 +49,93 @@ const searchInput = document.getElementById("search");
 let photoDataUrl = null; // the captured/selected photo (data URL) or null
 let coords = null; // { lat, lng } from GPS, or null
 let cameraStream = null; // active MediaStream while camera is open
+
+// =====================================================================
+// STAR RATING WIDGET (reusable)
+// =====================================================================
+// Builds 5 clickable stars inside `el`. The chosen value (0-5) is stored
+// on el.dataset.value so we can read it back when saving.
+function buildStars(el, initial) {
+  el.dataset.value = String(initial || 0);
+  el.innerHTML = "";
+  for (let i = 1; i <= 5; i++) {
+    const star = document.createElement("button");
+    star.type = "button";
+    star.className = "star";
+    star.textContent = "★";
+    star.setAttribute("aria-label", i + " star" + (i > 1 ? "s" : ""));
+    star.addEventListener("click", () => {
+      // Click the same star again to clear it back to 0.
+      const current = Number(el.dataset.value);
+      const next = current === i ? 0 : i;
+      el.dataset.value = String(next);
+      paintStars(el);
+    });
+    el.appendChild(star);
+  }
+  paintStars(el);
+}
+
+function paintStars(el) {
+  const value = Number(el.dataset.value);
+  [...el.children].forEach((star, idx) => {
+    star.classList.toggle("on", idx < value);
+  });
+}
+
+function getStars(el) {
+  return Number(el.dataset.value) || 0;
+}
+
+buildStars(starInput, 0);
+
+// =====================================================================
+// FOOD ITEM ROWS (name + stars + note)
+// =====================================================================
+addItemBtn.addEventListener("click", () => addItemRow());
+
+function addItemRow(data) {
+  const row = document.createElement("div");
+  row.className = "item-row";
+
+  const name = document.createElement("input");
+  name.type = "text";
+  name.className = "item-name";
+  name.placeholder = "Dish name (e.g. Pani Puri)";
+  if (data) name.value = data.name || "";
+
+  const stars = document.createElement("div");
+  stars.className = "stars-input item-stars";
+  buildStars(stars, data ? data.rating : 0);
+
+  const note = document.createElement("input");
+  note.type = "text";
+  note.className = "item-note";
+  note.placeholder = "Note (optional)";
+  if (data) note.value = data.note || "";
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "remove-item";
+  remove.textContent = "✕";
+  remove.setAttribute("aria-label", "Remove this item");
+  remove.addEventListener("click", () => row.remove());
+
+  row.append(name, stars, note, remove);
+  itemsList.appendChild(row);
+}
+
+// Read all item rows into a clean array, dropping empty ones.
+function collectItems() {
+  const rows = [...itemsList.querySelectorAll(".item-row")];
+  return rows
+    .map((row) => ({
+      name: row.querySelector(".item-name").value.trim(),
+      rating: getStars(row.querySelector(".item-stars")),
+      note: row.querySelector(".item-note").value.trim(),
+    }))
+    .filter((it) => it.name || it.rating || it.note);
+}
 
 // =====================================================================
 // LIVE LOCATION (GPS)
@@ -310,6 +402,9 @@ form.addEventListener("submit", (e) => {
     location: locationInput.value.trim(),
     coords: coords,
     photo: photoDataUrl,
+    rating: getStars(starInput),
+    review: reviewInput.value.trim(),
+    items: collectItems(),
     createdAt: new Date().toISOString(),
   };
 
@@ -337,6 +432,8 @@ function resetForm() {
   gpsStatus.textContent = "";
   ocrStatus.classList.add("hidden");
   ocrText.classList.add("hidden");
+  buildStars(starInput, 0);
+  itemsList.innerHTML = "";
   stopCamera();
 }
 
@@ -347,10 +444,17 @@ function render() {
   const query = searchInput.value.trim().toLowerCase();
   const places = loadPlaces().filter((p) => {
     if (!query) return true;
-    return (
-      p.name.toLowerCase().includes(query) ||
-      p.area.toLowerCase().includes(query)
-    );
+    const haystack = [
+      p.name,
+      p.area,
+      p.location,
+      p.review,
+      ...(p.items || []).map((it) => it.name + " " + it.note),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(query);
   });
 
   countEl.textContent = loadPlaces().length;
@@ -404,6 +508,37 @@ function renderCard(p) {
     body.appendChild(loc);
   }
 
+  if (p.rating) {
+    const rate = document.createElement("div");
+    rate.className = "place-rating";
+    rate.innerHTML =
+      '<span class="stars">' + starString(p.rating) + "</span> " + p.rating + "/5";
+    body.appendChild(rate);
+  }
+
+  if (p.review) {
+    const rev = document.createElement("p");
+    rev.className = "place-review";
+    rev.textContent = "“" + p.review + "”";
+    body.appendChild(rev);
+  }
+
+  if (p.items && p.items.length) {
+    const list = document.createElement("ul");
+    list.className = "place-items";
+    p.items.forEach((it) => {
+      const li = document.createElement("li");
+      const stars = it.rating ? " " + starString(it.rating) : "";
+      const note = it.note ? " — " + it.note : "";
+      li.innerHTML =
+        "<strong>" + escapeHtml(it.name || "Dish") + "</strong>" +
+        '<span class="stars">' + stars + "</span>" +
+        escapeHtml(note);
+      list.appendChild(li);
+    });
+    body.appendChild(list);
+  }
+
   const meta = document.createElement("div");
   meta.className = "place-meta";
 
@@ -431,6 +566,17 @@ function renderCard(p) {
   body.appendChild(meta);
   card.appendChild(body);
   return card;
+}
+
+function starString(n) {
+  const v = Math.max(0, Math.min(5, Number(n) || 0));
+  return "★".repeat(v) + "☆".repeat(5 - v);
+}
+
+function escapeHtml(s) {
+  return (s || "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+  );
 }
 
 searchInput.addEventListener("input", render);
